@@ -15,6 +15,9 @@
 @property(strong, nonatomic) GCDAsyncUdpSocket *udpSocket;
 @property(strong, nonatomic) NSString *imageName;
 @property(strong, nonatomic) NSString *textTitle;
+@property(strong, nonatomic) NSString *portTitle;
+@property(strong, nonatomic) NSString *quitTitle;
+@property(strong, nonatomic) NSMenu *menu;
 @property(assign, nonatomic) BOOL dark;
 @property(assign, nonatomic) int udpPort;
 
@@ -26,7 +29,10 @@
 {
     _udpPort = -1;
     _imageName = @"none";
-    _textTitle = @" ";
+    _textTitle = @"";
+    _quitTitle = @"Quit";
+    _menu = [[NSMenu alloc] init];
+    
     self.statusItem = [self initializeStatusBarItem];
     [self refreshDarkMode];
 
@@ -42,13 +48,14 @@
     }
     @finally
     {
-        NSString *portTitle = [NSString stringWithFormat:@"UDP port: %@",
+        _portTitle = [NSString stringWithFormat:@"UDP port: %@",
                                                          _udpPort >= 0 ? [NSNumber numberWithInt:_udpPort] : @"unavailable"];
-        NSString *quitTitle = @"Quit";
-        _statusItem.menu = [self initializeStatusBarMenu:@{
-            portTitle : [NSValue valueWithPointer:nil],
-            quitTitle : [NSValue valueWithPointer:@selector(terminate:)]
-        }];
+        
+        _statusItem.menu = [self updateStatusBarMenu:@[
+                                                       @[_portTitle, [NSValue valueWithPointer:nil], @0],
+                                                       @[_quitTitle, [NSValue valueWithPointer:@selector(terminate:)], @1]
+                                                       ]];
+
     }
 
     NSDistributedNotificationCenter *center = [NSDistributedNotificationCenter defaultCenter];
@@ -171,14 +178,20 @@
     //    }
     //_statusItem.attributedTitle = [self createAttributedString:title];
     //_textTitle = title;
-    NSString *portTitle = [NSString stringWithFormat:@"UDP: %@",
-                           _udpPort >= 0 ? [NSNumber numberWithInt:_udpPort] : @"unavailable"];
-    NSString *quitTitle = @"Quit";
-    _statusItem.menu = [self initializeStatusBarMenu:@{
-                                                       portTitle : [NSValue valueWithPointer:nil],
-                                                       title : [NSValue valueWithPointer:@selector(copyToClipboard:)],
-                                                       quitTitle : [NSValue valueWithPointer:@selector(terminate:)]
-                                                       }];
+//    
+
+    _statusItem.menu = [self updateStatusBarMenu:@[
+                                                   @[title, [NSValue valueWithPointer:@selector(copyToClipboard:)], @0],
+                                                   @[_portTitle, [NSValue valueWithPointer:nil], @1],
+                                                   @[_quitTitle, [NSValue valueWithPointer:@selector(terminate:)], @2]
+                                                   ]];
+
+    
+//    _statusItem.menu = [self updateStatusBarMenu:@{
+//                                                       _portTitle : [NSValue valueWithPointer:nil],
+//                                                       title : [NSValue valueWithPointer:@selector(copyToClipboard:)],
+//                                                       _quitTitle : [NSValue valueWithPointer:@selector(terminate:)]
+//                                                       }];
 }
 
 - (void)copyToClipboard:(NSMenuItem *)t
@@ -256,20 +269,19 @@
     return statusItem;
 }
 
-- (NSMenu *)initializeStatusBarMenu:(NSDictionary *)menuDictionary
+- (NSMenu *)updateStatusBarMenu:(NSArray *)menuArray
 {
-    NSMenu *menu = [[NSMenu alloc] init];
-
-    [menuDictionary enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSValue *val, BOOL *stop) {
+    [_menu removeAllItems];
+    [menuArray enumerateObjectsUsingBlock:^(NSArray *object, NSUInteger idx, BOOL *stop) {
         SEL action = nil;
-        [val getValue:&action];
-        NSMenuItem *menuItem = [menu addItemWithTitle:key action:action keyEquivalent:@""];
+        [[object objectAtIndex:1] getValue:&action];
+        NSMenuItem *menuItem = [_menu addItemWithTitle:[object objectAtIndex:0] action:action keyEquivalent:@""];
         if (action != @selector(terminate:)) {
            [menuItem setTarget:self];
         }
     }];
 
-    return menu;
+    return _menu;
 }
 
 - (int)readIntFromEnvironmentVariable:(NSString *)envVariable usingDefault:(NSString *)defStr
