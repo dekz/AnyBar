@@ -169,8 +169,22 @@
     //    if (_dark) {
     //
     //    }
-    _statusItem.attributedTitle = [self createAttributedString:title];
-    _textTitle = title;
+    //_statusItem.attributedTitle = [self createAttributedString:title];
+    //_textTitle = title;
+    NSString *portTitle = [NSString stringWithFormat:@"UDP: %@",
+                           _udpPort >= 0 ? [NSNumber numberWithInt:_udpPort] : @"unavailable"];
+    NSString *quitTitle = @"Quit";
+    _statusItem.menu = [self initializeStatusBarMenu:@{
+                                                       portTitle : [NSValue valueWithPointer:nil],
+                                                       title : [NSValue valueWithPointer:@selector(copyToClipboard:)],
+                                                       quitTitle : [NSValue valueWithPointer:@selector(terminate:)]
+                                                       }];
+}
+
+- (void)copyToClipboard:(NSMenuItem *)t
+{
+    [[NSPasteboard generalPasteboard] clearContents];
+    [[NSPasteboard generalPasteboard] setString:[t title]  forType:NSStringPboardType];
 }
 
 - (BOOL)setImage:(NSString *)name
@@ -209,6 +223,7 @@
     }
     _statusItem.image = image;
     _imageName = name;
+    
     _statusItem.attributedTitle = [self createAttributedString:_textTitle];
     return YES;
 }
@@ -225,7 +240,7 @@
         NSArray *stringArray = [msg componentsSeparatedByString:@" "];
         if ([self setImage:stringArray[0]])
             stringArray = [stringArray subarrayWithRange:NSMakeRange(1, stringArray.count - 1)];
-        if (stringArray.count > 1)
+        if (stringArray.count > 0)
         {
             [self setText:[stringArray componentsJoinedByString:@" "]];
         }
@@ -248,7 +263,10 @@
     [menuDictionary enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSValue *val, BOOL *stop) {
         SEL action = nil;
         [val getValue:&action];
-        [menu addItemWithTitle:key action:action keyEquivalent:@""];
+        NSMenuItem *menuItem = [menu addItemWithTitle:key action:action keyEquivalent:@""];
+        if (action != @selector(terminate:)) {
+           [menuItem setTarget:self];
+        }
     }];
 
     return menu;
