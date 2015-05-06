@@ -28,7 +28,7 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     _udpPort = -1;
-    _imageName = @"none";
+    _imageName = @"white";
     _textTitle = @"";
     _quitTitle = @"Quit";
     _menu = [[NSMenu alloc] init];
